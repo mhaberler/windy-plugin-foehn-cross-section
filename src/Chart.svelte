@@ -1,5 +1,6 @@
 <div class="mt-15">
     <svg id="svgid" bind:this={svgEl}></svg>
+    <button on:click={downloadData}> Download data </button>
 </div>
 
 <script lang="ts">
@@ -19,6 +20,32 @@
     export let topText: string | undefined = undefined;
     export let bottomText: string | undefined = undefined;
 
+    // https://stackoverflow.com/questions/19721439/download-json-object-as-a-file-from-browser
+    // "ES6+ version for 2021; no 1MB limit either:"
+    const saveTemplateAsFile = (filename, dataObjToWrite) => {
+        // const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: 'text/json' });
+        const blob = new Blob([JSON.stringify(dataObjToWrite,undefined,2)], { type: 'text/json' });
+        const link = document.createElement('a');
+
+        link.download = filename;
+        link.href = window.URL.createObjectURL(blob);
+        link.dataset.downloadurl = ['text/json', link.download, link.href].join(':');
+
+        const evt = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+        });
+
+        link.dispatchEvent(evt);
+        link.remove();
+    };
+
+    let myTopdata;
+    function downloadData() {
+        saveTemplateAsFile("data.json", myTopdata);
+    }
+
     let svgEl: SVGSVGElement;
 
     type TSValue = { ts: Timestamp; diff: number };
@@ -36,6 +63,7 @@
                 ([{ data: top }, { data: bottom }]: HttpPayload<
                     WeatherDataPayload<DataHash>
                 >[]) => {
+                    myTopdata = top.data;  // mah: remember data 
                     const topData = top.data;
                     const bottomData = bottom.data;
                     const tsValues = calculatePressureDifference(topData, bottomData);
